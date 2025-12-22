@@ -1,0 +1,51 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    ports:
+      - "${POSTGRES_HOST_PORT:-5432}:5432"
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - ./pg_data:/var/lib/postgresql/data
+
+  server:
+    build: 
+      context: ./server
+      dockerfile: Dockerfile
+    ports:
+      - "${SERVER_PORT:-8080}:8080"
+    depends_on:
+      - db
+    environment:
+      - SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL_DOCKER}
+      - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER}
+      - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD}
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=validate
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    ports:
+      - "${CLIENT_PORT:-5173}:5173"
+    depends_on:
+      - server
+    environment:
+      - VITE_API_TARGET=${VITE_API_TARGET}
+
+  ingestor:
+    container_name: locusum-ingestor
+    build:
+      context: ../locusum-Ingestor
+    depends_on:
+      - db
+    environment:
+      - POSTGRES_HOST=db
+      - POSTGRES_DB=${POSTGRES_DB:-locusum}
+      - POSTGRES_USER=${POSTGRES_USER:-locusum}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-locusum_pass}
+
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-locusum}:${POSTGRES_PASSWORD:-locusum_pass}@db:5432/${POSTGRES_DB:-locusum}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY} 

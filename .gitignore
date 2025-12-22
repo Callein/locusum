@@ -1,0 +1,49 @@
+# Environment
+.env
+.env.*
+! .env.example
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDEs
+.idea/
+.vscode/
+*.iml
+*.swp
+*.swo
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+
+# Node/Frontend
+node_modules/
+dist/
+build/
+.next/
+out/
+coverage/
+
+# Java/Kotlin/Gradle
+.gradle/
+build/
+bin/
+out/
+
+# Database
+pg_data/
+*.sqlite3
+*.db
+*.db-journal
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
