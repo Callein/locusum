@@ -13,6 +13,11 @@ Thumbs.db
 *.iml
 *.swp
 *.swo
+# JetBrains IDE settings
+.idea/
+*.iml
+out/
+gen/
 
 # Python
 __pycache__/
