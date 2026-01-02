@@ -16,13 +16,15 @@ services:
       dockerfile: Dockerfile
     ports:
       - "${SERVER_PORT:-8080}:8080"
-    depends_on:
-      - db
     environment:
       - SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL_DOCKER}
       - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER}
       - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD}
       - SPRING_JPA_HIBERNATE_DDL_AUTO=validate
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://ollama:11434}
+    depends_on:
+      - db
+      - ollama
 
   client:
     build:
@@ -38,10 +40,11 @@ services:
       - ./client:/app
       - /app/node_modules
 
-  ingestor:
-    container_name: locusum-ingestor
+  ingestor-crawler:
+    container_name: locusum-crawler
     build:
-      context: ../locusum-Ingestor
+      context: ./ingestor
+    command: ["python", "-m", "locusum_ingestor.runner", "--mode", "crawler"]
     depends_on:
       - db
     environment:
@@ -50,7 +53,58 @@ services:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      - RESET_DB=false
+      
+  ingestor-processor:
+    container_name: locusum-processor
+    build:
+      context: ./ingestor
+    command: ["python", "-m", "locusum_ingestor.runner", "--mode", "processor"]
+    depends_on:
+      - db
+    environment:
+      - POSTGRES_HOST=db
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      - RESET_DB=false
+
+  ingestor-ai:
+    container_name: locusum-ai
+    build:
+      context: ./ingestor
+    command: ["python", "-m", "locusum_ingestor.runner", "--mode", "ai"]
+    depends_on:
+      - db
+      - ollama
+    environment:
+      - POSTGRES_HOST=db
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       - GOOGLE_API_KEY=${GOOGLE_API_KEY}
       - LLM_PROVIDER=${LLM_PROVIDER:-gemini}
-      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
-      - OLLAMA_MODEL=${OLLAMA_MODEL:-llama3}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://ollama:11434}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-llama3.1}
+      - RESET_DB=false
+  
+  ollama:
+    image: ollama/ollama:latest
+    container_name: locusum-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+volumes:
+  pg_data:
+  ollama_data:

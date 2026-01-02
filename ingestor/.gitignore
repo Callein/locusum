@@ -1,0 +1,24 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.env
+.venv/
+*.sqlite3
+*.db
+.DS_Store
+.idea/
+.vscode/
+node_modules/
+# Docker artifacts
+# Dockerfile
+# docker-compose.yml
+pg_data/
+# Logs
+logs/
+*.log
+
+# JetBrains IDE settings
+.idea/
+*.iml
+out/
+gen/
