@@ -44,6 +44,12 @@ class Article(SQLModel, table=True):
     # Keeping 768 for compatibility with current model config, but field name is embedding.
     embedding: Optional[list[float]] = Field(default=None, sa_column=Column(Vector(768)))
     
+    embedding: Optional[list[float]] = Field(default=None, sa_column=Column(Vector(768)))
+    
+    # Geo-Spatial Fields
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 from sqlalchemy import text

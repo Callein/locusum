@@ -9,6 +9,15 @@ from locusum_ingestor.database import get_session as get_sqlite_session, RawArti
 from locusum_ingestor.models.main_db import get_session as get_pg_session, Article, create_db_and_tables
 from locusum_ingestor.processor.extractor import extract_content
 
+# Approximate Center Coordinates for supported regions
+REGION_COORDS = {
+    "Dallas": (32.7767, -96.7970),
+    "Houston": (29.7604, -95.3698),
+    "Austin": (30.2672, -97.7431),
+    "San Antonio": (29.4241, -98.4936),
+    "Fort Worth": (32.7555, -97.3308),
+}
+
 def run_worker():
     """
     Main ETL loop:
@@ -86,6 +95,13 @@ def run_worker():
                             content_text=clean_text,
                             published_at=raw.fetched_at # Approximate
                         )
+                        
+                        # Map Region to Coordinates
+                        if raw.region and raw.region in REGION_COORDS:
+                            lat, lon = REGION_COORDS[raw.region]
+                            new_article.latitude = lat
+                            new_article.longitude = lon
+                            
                         pg_session.add(new_article)
                         pg_session.commit()
                         logger.info(f"Saved to PG: {raw.title[:30]}...")
