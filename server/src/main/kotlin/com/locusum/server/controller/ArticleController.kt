@@ -1,21 +1,23 @@
 package com.locusum.server.controller
 
 import com.locusum.server.domain.Article
-import com.locusum.server.repository.ArticleRepository
-import org.springframework.data.domain.PageRequest
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RestController
+import com.locusum.server.service.SearchService
+import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/api/articles")
+@CrossOrigin(originPatterns = ["*"]) // Allow all for dev
 class ArticleController(
-    private val articleRepository: ArticleRepository
+    private val searchService: SearchService
 ) {
 
     @GetMapping
-    fun getRecentArticles(): List<Article> {
-        val top20 = PageRequest.of(0, 20)
-        return articleRepository.findAllByOrderByPublishedAtDesc(top20)
+    fun getLatest(): List<Article> {
+        return searchService.getLatestArticles()
+    }
+
+    @GetMapping("/search")
+    fun search(@RequestParam q: String): List<Article> {
+        return searchService.search(q)
     }
 }
