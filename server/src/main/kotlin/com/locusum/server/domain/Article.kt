@@ -28,6 +28,12 @@ class Article(
     @Column(name = "region_code")
     val regionCode: String? = null,
 
+    @Column(name = "latitude")
+    var latitude: Double? = null,
+
+    @Column(name = "longitude")
+    var longitude: Double? = null,
+
     @Column(name = "published_at")
     val publishedAt: LocalDateTime? = null,
 

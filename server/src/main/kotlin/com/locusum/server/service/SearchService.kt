@@ -32,6 +32,10 @@ class SearchService(
         return articleRepository.findTop10ByOrderByPublishedAtDesc()
     }
 
+    fun getArticlesInBounds(minLat: Double, maxLat: Double, minLon: Double, maxLon: Double): List<Article> {
+        return articleRepository.findByLatitudeBetweenAndLongitudeBetween(minLat, maxLat, minLon, maxLon)
+    }
+
     private fun getEmbedding(text: String): List<Double> {
         val request = OllamaEmbeddingRequest(model = ollamaModel, prompt = text)
         

@@ -20,4 +20,14 @@ class ArticleController(
     fun search(@RequestParam q: String): List<Article> {
         return searchService.search(q)
     }
+
+    @GetMapping("/bounds")
+    fun getInBounds(
+        @RequestParam minLat: Double,
+        @RequestParam maxLat: Double,
+        @RequestParam minLon: Double,
+        @RequestParam maxLon: Double
+    ): List<Article> {
+        return searchService.getArticlesInBounds(minLat, maxLat, minLon, maxLon)
+    }
 }

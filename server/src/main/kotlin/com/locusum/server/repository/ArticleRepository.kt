@@ -22,6 +22,12 @@ interface ArticleRepository : JpaRepository<Article, Long> {
     """, nativeQuery = true)
     fun searchHybrid(query: String, embedding: String): List<Article>
     
+    // Geo-Spatial Search
+    fun findByLatitudeBetweenAndLongitudeBetween(
+        minLat: Double, maxLat: Double,
+        minLon: Double, maxLon: Double
+    ): List<Article>
+
     // Simple verification method
     fun findTop10ByOrderByPublishedAtDesc(): List<Article>
 }
