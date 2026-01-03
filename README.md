@@ -15,7 +15,6 @@ LocuSum은 텍사스 주요 도시(Dallas, Houston, Austin, San Antonio)의 뉴�
     *   빨간색: 부정 (Negative)
 *   **🔍 스마트 검색 (Smart Search)**: 
     *   단순 단어 검색뿐만 아니라 문맥을 이해하는 **Vector Similarity Search** 지원
-    *   "범죄 증가에 대한 우려"라고 검색하면 정확한 단어가 없어도 관련 기사 노출
 *   **🗺️ 인터랙티브 맵**:
     *   자유로운 지도 영역 크기 조절 (Resizable Split View)
     *   지역별 기사 필터링 및 통계 제공
