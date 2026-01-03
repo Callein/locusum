@@ -8,7 +8,7 @@ import MapArea from './components/MapArea';
 const API_URL = import.meta.env.VITE_API_TARGET || 'http://localhost:8080';
 
 // Supported Regions for Filters
-const REGIONS = ['All', 'Dallas', 'Houston', 'Austin', 'San Antonio', 'Fort Worth'];
+const REGIONS = ['All', 'Dallas - Fort Worth', 'Houston', 'Austin', 'San Antonio'];
 
 interface Bounds {
     minLat: number;
@@ -26,6 +26,39 @@ function App() {
     const [hoveredArticleId, setHoveredArticleId] = useState<number | null>(null);
     const [lastUpdated, setLastUpdated] = useState<string | null>(null);
     const [aiEnabled, setAiEnabled] = useState(true);
+    
+    // Resizable Map State
+    const [mapWidth, setMapWidth] = useState(40); // default 40%
+    const [isResizing, setIsResizing] = useState(false);
+
+    const startResizing = React.useCallback(() => {
+        setIsResizing(true);
+    }, []);
+
+    const stopResizing = React.useCallback(() => {
+        setIsResizing(false);
+    }, []);
+
+    const resize = React.useCallback(
+        (mouseMoveEvent: MouseEvent) => {
+            if (isResizing) {
+                const newWidth = (mouseMoveEvent.clientX / window.innerWidth) * 100;
+                if (newWidth > 20 && newWidth < 70) { // Min 20%, Max 70% (Prevent gray area)
+                    setMapWidth(newWidth);
+                }
+            }
+        },
+        [isResizing]
+    );
+
+    useEffect(() => {
+        window.addEventListener("mousemove", resize);
+        window.addEventListener("mouseup", stopResizing);
+        return () => {
+            window.removeEventListener("mousemove", resize);
+            window.removeEventListener("mouseup", stopResizing);
+        };
+    }, [resize, stopResizing]);
 
     // Initial Fetch
     useEffect(() => {
@@ -36,6 +69,10 @@ function App() {
     useEffect(() => {
         if (activeRegion === 'All') {
             setDisplayedArticles(allArticles);
+        } else if (activeRegion === 'Dallas - Fort Worth') {
+            setDisplayedArticles(allArticles.filter((a: any) => 
+                a.regionCode === 'Dallas' || a.regionCode === 'Fort Worth' || a.regionCode === 'Dallas - Fort Worth'
+            ));
         } else {
             setDisplayedArticles(allArticles.filter((a: any) => a.regionCode === activeRegion));
         }
@@ -56,7 +93,7 @@ function App() {
 
             setAllArticles(data);
             if (data.length > 0) {
-                setLastUpdated(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+                setLastUpdated(new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
             }
         } catch (error) {
             console.error("Error fetching articles:", error);
@@ -101,7 +138,7 @@ function App() {
             {/* Header */}
             <header className="bg-white shadow-sm z-20 flex-shrink-0">
                 <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-3">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between relative">
                         {/* Logo & Region Chips */}
                         <div className="flex items-center space-x-6">
                             <span className="text-2xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 cursor-pointer" onClick={() => window.location.reload()}>
@@ -126,8 +163,8 @@ function App() {
                             </div>
                         </div>
                         
-                        {/* Search Bar & Toggle */}
-                        <div className="flex-1 max-w-xl mx-4 relative group">
+                        {/* Search Bar & Toggle - Centered */}
+                        <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-xl px-4 hidden md:block">
                             <form onSubmit={handleSearch} className="w-full relative flex items-center">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
                                     <Search className="h-4 w-4 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
@@ -144,7 +181,7 @@ function App() {
                                 <div className="absolute right-2 flex items-center">
                                     <label className="inline-flex items-center cursor-pointer bg-white px-2 py-1 rounded-full border border-gray-100 shadow-sm hover:bg-gray-50 transition-colors">
                                         <span className={`mr-2 text-[10px] font-bold tracking-wide uppercase ${aiEnabled ? 'text-indigo-600' : 'text-gray-400'}`}>
-                                            AI Rank
+                                            AI Match
                                         </span>
                                         <div className="relative">
                                             <input 
@@ -153,12 +190,28 @@ function App() {
                                                 checked={aiEnabled}
                                                 onChange={() => setAiEnabled(!aiEnabled)}
                                             />
-                                            <div className="w-8 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600"></div>
+                                            <div className="w-8 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-[16px] rtl:peer-checked:after:-translate-x-[16px] peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600"></div>
                                         </div>
                                     </label>
                                 </div>
                             </form>
                         </div>
+
+                        {/* Mobile Search - Visible only on small screens */}
+                         <div className="flex-1 max-w-xl mx-4 relative group md:hidden">
+                            <form onSubmit={handleSearch} className="w-full relative flex items-center">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
+                                    <Search className="h-4 w-4 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+                                </div>
+                                <input
+                                    type="text"
+                                    className="block w-full pl-10 pr-10 py-2 border border-gray-200 rounded-full text-sm"
+                                    placeholder="Search..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                />
+                            </form>
+                         </div>
 
                         {/* Status */}
                         <div className="flex items-center space-x-4 text-xs text-gray-400">
@@ -176,13 +229,24 @@ function App() {
             {/* Split View Content */}
             <div className="flex-1 flex overflow-hidden relative">
                 
-                {/* Map Area (Desktop: Left 40%, Mobile: Hidden or Toggled) */}
-                <div className="hidden lg:block w-[40%] h-full relative border-r border-gray-200 z-0 shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
+                {/* Map Area (Resizable) */}
+                <div 
+                    className="hidden lg:block h-full relative border-r border-gray-200 z-0 shadow-[4px_0_24px_rgba(0,0,0,0.02)] flex-shrink-0"
+                    style={{ width: `${mapWidth}%` }}
+                >
                     <MapArea 
-                        articles={displayedArticles} 
+                        articles={allArticles} 
                         onRegionSelect={handleRegionClick}
                         activeRegion={activeRegion}
                     />
+                </div>
+
+                {/* Resizer Handle */}
+                <div
+                    className="hidden lg:flex w-2 items-center justify-center cursor-col-resize hover:bg-blue-100 transition-colors z-10 -ml-1 h-full"
+                    onMouseDown={startResizing}
+                >
+                    <div className="w-0.5 h-8 bg-gray-300 rounded-full"></div>
                 </div>
 
                 {/* List Area */}
