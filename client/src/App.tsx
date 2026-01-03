@@ -18,13 +18,14 @@ interface Bounds {
 }
 
 function App() {
-    const [allArticles, setAllArticles] = useState([]); // Store all fetched data
-    const [displayedArticles, setDisplayedArticles] = useState([]); // Filtered data for List view
+    const [allArticles, setAllArticles] = useState([]); 
+    const [displayedArticles, setDisplayedArticles] = useState([]); 
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [activeRegion, setActiveRegion] = useState('All');
     const [hoveredArticleId, setHoveredArticleId] = useState<number | null>(null);
     const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+    const [aiEnabled, setAiEnabled] = useState(true);
 
     // Initial Fetch
     useEffect(() => {
@@ -46,7 +47,7 @@ function App() {
             let endpoint = `${API_URL}/api/articles`;
             
             if (query) {
-                endpoint = `${API_URL}/api/articles/search?q=${encodeURIComponent(query)}`;
+                endpoint = `${API_URL}/api/articles/search?q=${encodeURIComponent(query)}&aiEnabled=${aiEnabled}`;
             }
             
             // Fetch ALL data matching the query (regardless of region)
@@ -64,21 +65,22 @@ function App() {
         }
     };
 
+    // Auto-search when AI Toggle changes, if there is a query
+    useEffect(() => {
+        if (searchQuery) {
+            fetchArticles(searchQuery);
+        }
+    }, [aiEnabled]);
+
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
-        // Reset region to All on new search to show full context, or keep it. 
-        // Let's keep it to verify if user wants to search within region.
-        // But fetchArticles(query) fetches everything matching query. Filtering happens in useEffect.
         fetchArticles(searchQuery);
     };
 
     const handleRegionClick = (region: string) => {
         setActiveRegion(region);
-        // No need to re-fetch if we already have data, unless we want to refresh.
-        // For now, let's assuming we just filter client side.
     };
 
-    // Handler for map bounds change (future optimization: fetch stats or localized news)
     const handleBoundsChange = async (bounds: Bounds) => {
         console.log("Map bounds changed:", bounds);
         // Implement bound-based fetching if needed:
@@ -124,19 +126,37 @@ function App() {
                             </div>
                         </div>
                         
-                        {/* Search Bar */}
-                        <div className="flex-1 max-w-md mx-4">
-                            <form onSubmit={handleSearch} className="w-full relative">
-                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <Search className="h-4 w-4 text-gray-400" />
+                        {/* Search Bar & Toggle */}
+                        <div className="flex-1 max-w-xl mx-4 relative group">
+                            <form onSubmit={handleSearch} className="w-full relative flex items-center">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
+                                    <Search className="h-4 w-4 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
                                 </div>
                                 <input
                                     type="text"
-                                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg leading-5 bg-gray-50 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm transition transition-all"
-                                    placeholder="Search topic (e.g., 'Traffic', 'Sports')..."
+                                    className="block w-full pl-10 pr-32 py-2.5 border border-gray-200 rounded-full leading-5 bg-gray-50 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm transition-all shadow-sm hover:bg-white"
+                                    placeholder="Search with AI..."
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                 />
+                                
+                                {/* AI Toggle Inside Search Bar */}
+                                <div className="absolute right-2 flex items-center">
+                                    <label className="inline-flex items-center cursor-pointer bg-white px-2 py-1 rounded-full border border-gray-100 shadow-sm hover:bg-gray-50 transition-colors">
+                                        <span className={`mr-2 text-[10px] font-bold tracking-wide uppercase ${aiEnabled ? 'text-indigo-600' : 'text-gray-400'}`}>
+                                            AI Rank
+                                        </span>
+                                        <div className="relative">
+                                            <input 
+                                                type="checkbox" 
+                                                className="sr-only peer" 
+                                                checked={aiEnabled}
+                                                onChange={() => setAiEnabled(!aiEnabled)}
+                                            />
+                                            <div className="w-8 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600"></div>
+                                        </div>
+                                    </label>
+                                </div>
                             </form>
                         </div>
 
@@ -157,9 +177,9 @@ function App() {
             <div className="flex-1 flex overflow-hidden relative">
                 
                 {/* Map Area (Desktop: Left 40%, Mobile: Hidden or Toggled) */}
-                <div className="hidden lg:block w-[40%] h-full relative border-r border-gray-200 z-0">
+                <div className="hidden lg:block w-[40%] h-full relative border-r border-gray-200 z-0 shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
                     <MapArea 
-                        articles={allArticles} 
+                        articles={displayedArticles} 
                         onRegionSelect={handleRegionClick}
                         activeRegion={activeRegion}
                     />

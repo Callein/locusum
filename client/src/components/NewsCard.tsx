@@ -10,6 +10,8 @@ interface Article {
     publishedAt: string;
     category?: string;
     sentimentScore?: number;
+    searchScore?: number;
+    relevanceLabel?: string;
 }
 
 interface NewsCardProps {
@@ -37,11 +39,8 @@ const NewsCard: React.FC<NewsCardProps> = ({ article, onHover }) => {
             onMouseLeave={() => onHover(null)}
         >
             <div className="p-5 flex-grow">
-                {/* Header: Category & Date */}
-                <div className="flex justify-between items-start mb-3">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
-                        {article.category || 'General'}
-                    </span>
+                {/* Header: Date Only */}
+                <div className="flex justify-end items-start mb-3">
                     <span className="text-xs text-gray-400 font-mono">
                         {new Date(article.publishedAt).toLocaleDateString()}
                     </span>
@@ -60,6 +59,22 @@ const NewsCard: React.FC<NewsCardProps> = ({ article, onHover }) => {
                         <Sparkles className="w-3 h-3 text-purple-500" />
                         <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">AI BRIEF</span>
                     </div>
+
+                    {article.relevanceLabel === "Highly Relevant" && (
+                        <div className="absolute -top-3 right-3 bg-gradient-to-r from-green-600 to-emerald-600 px-3 py-1 rounded-full shadow-md flex items-center space-x-1 ring-2 ring-white">
+                            <span className="text-[10px] font-extrabold text-white uppercase tracking-wider flex items-center gap-1">
+                                ✨ AI PICK
+                            </span>
+                        </div>
+                    )}
+
+                    {article.relevanceLabel === "Related" && (
+                        <div className="absolute -top-3 right-3 bg-white px-3 py-0.5 rounded-full border border-blue-200 shadow-sm flex items-center space-x-1">
+                            <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider flex items-center gap-1">
+                                🤖 AI FOUND
+                            </span>
+                        </div>
+                    )}
                     
                     <div className="space-y-2 mt-1">
                         {summaryPoints.slice(0, 3).map((point, index) => (
