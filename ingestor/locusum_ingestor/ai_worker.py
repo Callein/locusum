@@ -72,11 +72,11 @@ def run_ai_worker():
 
                     # 2. Embed (if missing)
                     if not article.embedding:
-                        # Ensure we have content to embed
-                        if not article.content_text:
+                        # Ensure we have summary to embed
+                        if not article.summary:
                              continue
 
-                        embedding = ai_service.embed(article.content_text)
+                        embedding = ai_service.embed(article.summary)
                         if not embedding:
                             logger.warning(f"Embedding generation failed for ID {article.article_id}. Will retry.")
                         else:
