@@ -1,13 +1,16 @@
 import React from 'react';
-import { Newspaper, Share2, ExternalLink, Sparkles } from 'lucide-react';
+import { Newspaper, ExternalLink, Sparkles } from 'lucide-react';
 
 interface Article {
     articleId: number;
     title: string;
     summary: string;
     originalUrl: string;
+    source: string;
     regionCode: string;
     publishedAt: string;
+    contentText?: string;
+    cleanContent?: string;
     category?: string;
     sentimentScore?: number;
     searchScore?: number;
@@ -28,9 +31,41 @@ const NewsCard: React.FC<NewsCardProps> = ({ article, onHover }) => {
     };
 
     // Parse summary into bullet points
-    const summaryPoints = article.summary 
-        ? article.summary.split('\n').filter(line => line.trim().length > 0)
-        : ["No summary available."];
+    // Parse summary into bullet points
+    const parseSummary = (text: string | null | undefined): string[] => {
+        if (!text) return ["No summary available."];
+        
+        let cleaned = text;
+        // Handle Postgres/Python array string representation like {"* A", "* B"}
+        if (text.trim().startsWith('{') && text.trim().endsWith('}')) {
+             cleaned = text.slice(1, -1); // Remove braces
+        }
+
+        // Split by logic that handles quoted strings or newlines
+        // Simple heuristic: split by "," then clean quotes
+        // Or if it's newline separated, split by newline
+        
+        let points: string[] = [];
+        if (cleaned.includes('","')) {
+             points = cleaned.split('","');
+        } else if (cleaned.includes('\n')) {
+             points = cleaned.split('\n');
+        } else {
+             points = cleaned.split(','); // Fallback for simple comma sep
+        }
+
+        return points
+            .map(p => {
+                // Clean quotes, bullets, trimming
+                return p.replace(/^"|"$/g, '') // Remove wrapping quotes
+                        .replace(/^[*•-]\s*/, '') // Remove bullets
+                        // .replace(/\\"/g, '"') // Unescape quotes if needed
+                        .trim();
+            })
+            .filter(p => p.length > 0);
+    };
+
+    const summaryPoints = parseSummary(article.summary);
 
     return (
         <div 
@@ -40,10 +75,30 @@ const NewsCard: React.FC<NewsCardProps> = ({ article, onHover }) => {
         >
             <div className="p-5 flex-grow">
                 {/* Header: Date Only */}
-                <div className="flex justify-end items-start mb-3">
-                    <span className="text-xs text-gray-400 font-mono">
-                        {new Date(article.publishedAt).toLocaleDateString()}
-                    </span>
+                <div className="flex justify-between items-start mb-3">
+                    <div className="flex flex-col">
+                        <span className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
+                            {article.source}
+                        </span>
+                        <span className="text-[10px] text-gray-400 font-mono">
+                            {new Date(article.publishedAt).toLocaleDateString()}
+                        </span>
+                    </div>
+
+                    {/* Sentiment Badge */}
+                    {article.sentimentScore !== undefined && article.sentimentScore !== null && (
+                        <div className={`px-2 py-0.5 rounded text-[10px] font-bold flex items-center space-x-1 ${
+                            article.sentimentScore >= 0.7 ? 'bg-green-100 text-green-700' : 
+                            article.sentimentScore <= 0.3 ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
+                        }`}>
+                            <span>
+                                {article.sentimentScore >= 0.7 ? '😊' : article.sentimentScore <= 0.3 ? '🚨' : '😐'}
+                            </span>
+                            <span>
+                                {article.sentimentScore >= 0.7 ? 'POSITIVE' : article.sentimentScore <= 0.3 ? 'NEGATIVE' : 'NEUTRAL'}
+                            </span>
+                        </div>
+                    )}
                 </div>
                 
                 {/* Title */}
@@ -81,7 +136,7 @@ const NewsCard: React.FC<NewsCardProps> = ({ article, onHover }) => {
                             <div key={index} className="flex items-start">
                                 <span className="text-purple-400 font-bold mr-2 text-xs mt-1">{index + 1}.</span>
                                 <p className="text-gray-700 text-sm leading-relaxed font-medium">
-                                    {point.replace(/^[*•-]\s*/, '').trim()}
+                                    {point}
                                 </p>
                             </div>
                         ))}
@@ -92,6 +147,11 @@ const NewsCard: React.FC<NewsCardProps> = ({ article, onHover }) => {
             {/* Footer */}
             <div className="px-5 py-3 border-t border-gray-100 flex justify-between items-center bg-gray-50/50">
                 <div className="flex items-center text-xs text-gray-500 font-medium">
+                    {article.category && (
+                        <span className="mr-3 px-2 py-0.5 bg-gray-100 text-gray-600 rounded-md font-semibold">
+                            {article.category}
+                        </span>
+                    )}
                     <Newspaper className="h-3.5 w-3.5 mr-1.5" />
                     {article.regionCode || 'Global'}
                 </div>
