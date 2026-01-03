@@ -39,8 +39,9 @@ class Article(
 
     val category: String? = null,
 
+    @com.fasterxml.jackson.annotation.JsonProperty("sentimentScore")
     @Column(name = "sentiment_score")
-    val sentimentScore: Double? = null,
+    var sentimentScore: Double? = null,
 
     @Column(name = "embedding", columnDefinition = "vector(768)")
     @Convert(converter = VectorConverter::class)

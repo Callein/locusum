@@ -109,6 +109,7 @@ class SearchService(
             regionCode = tuple.get("region_code", String::class.java),
             publishedAt = tuple.get("published_at", java.time.LocalDateTime::class.java),
             category = tuple.get("category", String::class.java),
+            sentimentScore = try { tuple.get("sentiment_score", Number::class.java)?.toDouble() } catch (e: Exception) { null },
             // Map other fields as necessary or nullable
             contentText = tuple.get("content_text", String::class.java) 
         )

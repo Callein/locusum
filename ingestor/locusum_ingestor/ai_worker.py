@@ -63,15 +63,18 @@ def run_ai_worker():
                             logger.warning(f"Skipping empty content article ID {article.article_id}")
                             continue
 
-                        summary = ai_service.summarize(article.content_text)
-                        if not summary:
+                        result = ai_service.summarize(article.content_text)
+                        
+                        if not result or "summary" not in result:
                             logger.warning(f"Summary generation failed for ID {article.article_id}. Skipping DB update (will retry).")
                         else:
-                            article.summary = summary
+                            article.summary = result.get("summary", "")
+                            article.sentiment_score = result.get("sentiment_score", 0.5)
+                            article.category = result.get("category", "General")
                             summary_updated = True
 
                     # 2. Embed (if missing)
-                    if not article.embedding:
+                    if article.embedding is None:
                         # Ensure we have summary to embed
                         if not article.summary:
                              continue

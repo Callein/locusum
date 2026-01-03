@@ -15,7 +15,7 @@ load_dotenv()
 
 class AIServiceInterface(ABC):
     @abstractmethod
-    def summarize(self, text: str) -> str:
+    def summarize(self, text: str) -> dict:
         pass
 
     @abstractmethod
@@ -26,18 +26,22 @@ class BaseAIService(AIServiceInterface):
     def __init__(self):
         self.summary_prompt = PromptTemplate.from_template(
             """
-            System: You are a professional news editor.
-            Task: Summarize the following news article into 3 concise bullet points in English.
+            System: You are a professional news editor and sentiment analyst.
+            Task: 
+            1. Summarize the following news article into 3 concise bullet points in English.
+            2. Analyze the sentiment of the article and assign a score between 0.0 (Negative/Disaster) and 1.0 (Positive/Development).
+            3. Categorize the article into ONE of the following: Politics, Economy, Sports, Technology, Entertainment, Local, Disaster, Other.
+            
             Constraints:
-            - Output ONLY the 3 bullet points.
-            - Do NOT include any introductory text like "Here is the summary".
-            - Start each bullet point with "* ".
-            - Keep it concise and factual.
-
+            - Output MUST be a valid JSON object.
+            - Keys: "summary" (string bullet points), "sentiment_score" (float), "category" (string).
+            - Start each bullet point in the summary with "* ".
+            - Do NOT include markdown code blocks (```json ... ```). Just the raw JSON string.
+            
             Article:
             {text}
             
-            Summary (English Bullet Points):
+            Output JSON:
             """
         )
 
@@ -85,19 +89,34 @@ class GeminiAIService(BaseAIService):
         wait=wait_exponential(multiplier=2, min=4, max=60),
         before_sleep=lambda retry_state: logger.warning(f"Rate Limit Hit (429) on [gemini-2.5-flash]. Retrying in {retry_state.next_action.sleep}s...")
     )
-    def summarize(self, text: str) -> str:
+    def summarize(self, text: str) -> dict:
         self._wait_for_rate_limit()
         try:
             truncated_text = text[:10000]
             response = self.summary_chain.invoke({"text": truncated_text})
-            return response.content.strip()
+            content = response.content.strip()
+            
+            # Simple cleanup if model sends markdown
+            if content.startswith("```json"):
+                content = content.replace("```json", "").replace("```", "")
+            if content.startswith("```"):
+                 content = content.replace("```", "")
+                 
+            import json
+            try:
+                return json.loads(content)
+            except json.JSONDecodeError:
+                logger.error(f"JSON Parsing failed. Raw content: {content}")
+                # Fallback: try to just return summary structure if possible or empty
+                return {"summary": content, "sentiment_score": 0.5, "category": "General"}
+
         except ResourceExhausted as e:
             raise e
         except RetryError as e:
             raise e
         except Exception as e:
             logger.error(f"Error generating summary: {e}")
-            return ""
+            return {}
 
     @retry(
         retry=retry_if_exception_type(ResourceExhausted),
@@ -141,16 +160,31 @@ class OllamaAIService(BaseAIService):
         
         self.summary_chain = self.summary_prompt | self.llm
 
-    def summarize(self, text: str) -> str:
+    def summarize(self, text: str) -> dict:
         try:
             # Check context window limits if necessary, but Ollama handles it or truncates
             # We can still truncate to be safe/faster
             truncated_text = text[:10000]
             response = self.summary_chain.invoke({"text": truncated_text})
-            return response.content.strip()
+            content = response.content.strip()
+
+            # Simple cleanup if model sends markdown
+            if content.startswith("```json"):
+                content = content.replace("```json", "").replace("```", "")
+            if content.startswith("```"):
+                 content = content.replace("```", "")
+                 
+            import json
+            try:
+                return json.loads(content)
+            except json.JSONDecodeError:
+                logger.error(f"JSON Parsing failed (Ollama). Raw content: {content}")
+                 # Fallback
+                return {"summary": content, "sentiment_score": 0.5, "category": "General"}
+
         except Exception as e:
             logger.error(f"Error generating summary (Ollama): {e}")
-            return ""
+            return {}
 
     def embed(self, text: str) -> List[float]:
         try:
