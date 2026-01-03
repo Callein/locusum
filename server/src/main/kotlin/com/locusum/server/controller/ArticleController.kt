@@ -17,8 +17,8 @@ class ArticleController(
     }
 
     @GetMapping("/search")
-    fun search(@RequestParam q: String): List<Article> {
-        return searchService.search(q)
+    fun search(@RequestParam q: String, @RequestParam(defaultValue = "true") aiEnabled: Boolean): List<Article> {
+        return searchService.search(q, aiEnabled)
     }
 
     @GetMapping("/bounds")

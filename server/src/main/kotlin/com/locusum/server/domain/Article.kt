@@ -47,5 +47,11 @@ class Article(
     var embedding: List<Double>? = null, // Using List<Double> for cleaner JSON mapping
 
     @Column(name = "created_at")
-    val createdAt: LocalDateTime = LocalDateTime.now()
+    val createdAt: LocalDateTime = LocalDateTime.now(),
+
+    @Transient
+    var searchScore: Double? = null,
+
+    @Transient
+    var relevanceLabel: String? = null
 )

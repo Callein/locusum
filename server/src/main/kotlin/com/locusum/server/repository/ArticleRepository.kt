@@ -4,6 +4,7 @@ import com.locusum.server.domain.Article
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import org.springframework.stereotype.Repository
+import jakarta.persistence.Tuple
 
 @Repository
 interface ArticleRepository : JpaRepository<Article, Long> {
@@ -21,6 +22,14 @@ interface ArticleRepository : JpaRepository<Article, Long> {
         LIMIT 20
     """, nativeQuery = true)
     fun searchHybrid(query: String, embedding: String): List<Article>
+
+    @Query(value = """
+        SELECT *, (1 - (embedding <=> cast(:embedding as vector))) as score 
+        FROM articles 
+        ORDER BY (embedding <=> cast(:embedding as vector)) ASC
+        LIMIT 5
+    """, nativeQuery = true)
+    fun findSimilarWithScore(embedding: String): List<Tuple>
     
     // Geo-Spatial Search
     fun findByLatitudeBetweenAndLongitudeBetween(
@@ -28,6 +37,9 @@ interface ArticleRepository : JpaRepository<Article, Long> {
         minLon: Double, maxLon: Double
     ): List<Article>
 
-    // Simple verification method
-    fun findTop10ByOrderByPublishedAtDesc(): List<Article>
+    // Custom verification/fetch method
+    fun findAllByOrderByPublishedAtDesc(): List<Article>
+
+    // Keyword Search
+    fun findByTitleContainingIgnoreCaseOrContentTextContainingIgnoreCase(title: String, content: String): List<Article>
 }
